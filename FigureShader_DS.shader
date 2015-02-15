@@ -1,4 +1,4 @@
-﻿Shader "Custom/FigureShader" {
+﻿Shader "Custom/FigureShader_DS" {
 	Properties {
 		_Color ("Main Color", Color) = (1, 1, 1, 1)
 		_ShadowColor ("Shadow Color", Color) = (0.8, 0.8, 0.8, 1)
@@ -6,7 +6,7 @@
 	}
 	SubShader {
 		Tags { "RenderType"="Opaque" }
-		Cull Back
+		Cull Off
 		LOD 200
 Pass{
 Tags {"LightMode" = "ForwardBase"}
