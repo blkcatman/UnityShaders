@@ -20,9 +20,6 @@ CGPROGRAM
 
 #include "UnityCG.cginc"
 #include "AutoLight.cginc"
-#define ENABLE_NORMAL_MAP
-
-#define ENABLE_CAST_SHADOWS
 
 // Material parameters
 float4 _Color;
@@ -33,7 +30,6 @@ float4 _MainTex_ST;
 // Textures
 sampler2D _MainTex;
 		
-#ifdef ENABLE_CAST_SHADOWS
 struct v2f
 {
 	float4 pos    : SV_POSITION;
@@ -43,16 +39,6 @@ struct v2f
 	float3 eyeDir : TEXCOORD4;
 	float3 lightDir : TEXCOORD5;
 };
-#else
-struct v2f
-{
-	float4 pos    : SV_POSITION;
-	float3 normal : TEXCOORD0;
-	float2 uv     : TEXCOORD1;
-	float3 eyeDir : TEXCOORD2;
-	float3 lightDir : TEXCOORD3;
-};
-#endif
 
 float3 rgb2hsv(float3 c)
 {
@@ -78,15 +64,11 @@ v2f vert( appdata_base v )
 	o.uv = TRANSFORM_TEX( v.texcoord.xy, _MainTex );
 	o.normal = normalize( mul( _Object2World, float4( v.normal, 0 ) ).xyz );
 	
-	// Eye direction vector
 	float4 worldPos =  mul( _Object2World, v.vertex );
 	o.eyeDir = normalize( _WorldSpaceCameraPos - worldPos );
-
 	o.lightDir = WorldSpaceLightDir( v.vertex );
 
-#ifdef ENABLE_CAST_SHADOWS
 	TRANSFER_VERTEX_TO_FRAGMENT( o );
-#endif
 	return o;
 }
 float4 frag( v2f i ) : COLOR
@@ -103,13 +85,10 @@ float4 frag( v2f i ) : COLOR
 	
 	hue.z = hue.z * sqrt(max(sqrt(at),0.01));
 	texcol.rgb = hsv2rgb(hue) * _LightColor0.xyz;
-	//return DiffuseLight(i.lightDir, i.normal, texcol, LIGHT_ATTENUATION(i));
 	
-#ifdef ENABLE_CAST_SHADOWS
 	float3 shadowColor = _ShadowColor.rgb * texcol;
 	float attenuation = saturate( 2.0 * LIGHT_ATTENUATION( i ) - 1.0 );
 	texcol.rgb = lerp( shadowColor, texcol.rgb, attenuation );
-#endif
 	return texcol;
 }
 ENDCG
@@ -130,9 +109,6 @@ CGPROGRAM
 
 #include "UnityCG.cginc"
 #include "AutoLight.cginc"
-#define ENABLE_NORMAL_MAP
-
-#define ENABLE_CAST_SHADOWS
 
 // Material parameters
 float4 _Color;
@@ -143,7 +119,6 @@ float4 _MainTex_ST;
 // Textures
 sampler2D _MainTex;
 		
-#ifdef ENABLE_CAST_SHADOWS
 struct v2f
 {
 	float4 pos    : SV_POSITION;
@@ -153,16 +128,6 @@ struct v2f
 	float3 eyeDir : TEXCOORD4;
 	float3 lightDir : TEXCOORD5;
 };
-#else
-struct v2f
-{
-	float4 pos    : SV_POSITION;
-	float3 normal : TEXCOORD0;
-	float2 uv     : TEXCOORD1;
-	float3 eyeDir : TEXCOORD2;
-	float3 lightDir : TEXCOORD3;
-};
-#endif
 
 float3 rgb2hsv(float3 c)
 {
@@ -188,15 +153,11 @@ v2f vert( appdata_base v )
 	o.uv = TRANSFORM_TEX( v.texcoord.xy, _MainTex );
 	o.normal = normalize( mul( _Object2World, float4( v.normal, 0 ) ).xyz );
 	
-	// Eye direction vector
 	float4 worldPos =  mul( _Object2World, v.vertex );
 	o.eyeDir = normalize( _WorldSpaceCameraPos - worldPos );
-
 	o.lightDir = WorldSpaceLightDir( v.vertex );
 
-#ifdef ENABLE_CAST_SHADOWS
 	TRANSFER_VERTEX_TO_FRAGMENT( o );
-#endif
 	return o;
 }
 float4 frag( v2f i ) : COLOR
@@ -213,13 +174,10 @@ float4 frag( v2f i ) : COLOR
 	
 	hue.z = hue.z * sqrt(max(sqrt(at),0.01));
 	texcol.rgb = hsv2rgb(hue) * _LightColor0.xyz;
-	//return DiffuseLight(i.lightDir, i.normal, texcol, LIGHT_ATTENUATION(i));
-	
-#ifdef ENABLE_CAST_SHADOWS
+
 	float3 shadowColor = _ShadowColor.rgb * texcol;
 	float attenuation = saturate( 2.0 * LIGHT_ATTENUATION( i ) - 1.0 );
 	texcol.rgb = lerp( shadowColor, texcol.rgb, attenuation );
-#endif
 	return texcol;
 }
 ENDCG
