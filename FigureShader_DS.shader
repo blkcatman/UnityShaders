@@ -1,8 +1,22 @@
-﻿Shader "Custom/FigureShader_DS" {
+﻿//FigureShader_DS.shader
+//
+//Copyright (c) 2015 Tatsuro Matsubara
+//Released under the MIT license
+//http://opensource.org/licenses/mit-license.php
+//
+
+Shader "Custom/FigureShader_DS" {
 	Properties {
 		_Color ("Main Color", Color) = (1, 1, 1, 1)
+		_SpecularColor ("Specular Color", Color) = (0.2, 0.2, 0.2, 1)
 		_ShadowColor ("Shadow Color", Color) = (0.8, 0.8, 0.8, 1)
+		_Sharpness ("Specular Sharpness", Float) = 4.5
+		_DivisionW ("Warm color Division", Float) = 4.0
+		_DivisionC ("Cold color Division", Float) = 4.0
+		_CoeffW ("Warm color Coefficient", Float) = 1.0
+		_CoeffC ("Cold color Coefficient", Float) = 1.0
 		_MainTex ("Base (RGB)", 2D) = "white" {}
+		_DiffuseWeight ("Diffuse Strength", Float) = 0.75
 	}
 	SubShader {
 		Tags { "RenderType"="Opaque" }
@@ -23,9 +37,16 @@ CGPROGRAM
 
 // Material parameters
 float4 _Color;
+float4 _SpecularColor;
 float4 _ShadowColor;
 float4 _LightColor0;
 float4 _MainTex_ST;
+float _Sharpness;
+float _DivisionW;
+float _DivisionC;
+float _CoeffW;
+float _CoeffC;
+float _DiffuseWeight;
 
 // Textures
 sampler2D _MainTex;
@@ -73,14 +94,16 @@ v2f vert( appdata_base v )
 }
 float4 frag( v2f i ) : COLOR
 {
+	float pi = 3.14159265359;
+	
 	float4 texcol = tex2D(_MainTex, i.uv);
 	float3 hue = rgb2hsv(texcol.rgb);
-	float3 n = normalize(i.lightDir + i.normal * 1.5);
-	float at = dot(i.lightDir, n);
+	float3 n = normalize(i.lightDir*(1.0-_DiffuseWeight) + i.normal*_DiffuseWeight);
+	float at = min(dot(i.lightDir, n),1.0);
 	if(hue.x <= 1.0/6.0) {
-		hue.x = hue.x - pow(acos(at),2.0) * 1.0 / 18.0; // acos(at) -> color cycle shift
+		hue.x = hue.x - pow(acos(at)/pi,_CoeffW) / _DivisionW; // acos(at) -> color cycle shift
 	} else if(hue.x <= 2.0/3.0) {
-		hue.x = hue.x + pow(acos(at),2.0) * 1.0 / 18.0; // acos(at) -> color cycle shift
+		hue.x = hue.x + pow(acos(at)/pi,_CoeffC) / _DivisionC; // acos(at) -> color cycle shift
 	}
 	
 	hue.z = hue.z * sqrt(max(sqrt(at),0.01));
@@ -88,8 +111,13 @@ float4 frag( v2f i ) : COLOR
 	
 	float3 shadowColor = _ShadowColor.rgb * texcol;
 	float attenuation = saturate( 2.0 * LIGHT_ATTENUATION( i ) - 1.0 );
-	texcol.rgb = lerp( shadowColor, texcol.rgb, attenuation );
-	return texcol;
+	float sint = pow(max(0.0, dot(reflect(-i.lightDir, n), i.eyeDir)), _Sharpness);
+	float3 spec = _LightColor0.rgb * attenuation * _SpecularColor * sint;
+	float3 lum = texcol.rgb + spec;
+	float4 result;
+	result.rgb = lerp( shadowColor, lum, attenuation );
+	result.a = texcol.a;
+	return result;
 }
 ENDCG
 }
@@ -112,9 +140,16 @@ CGPROGRAM
 
 // Material parameters
 float4 _Color;
+float4 _SpecularColor;
 float4 _ShadowColor;
 float4 _LightColor0;
 float4 _MainTex_ST;
+float _Sharpness;
+float _DivisionW;
+float _DivisionC;
+float _CoeffW;
+float _CoeffC;
+float _DiffuseWeight;
 
 // Textures
 sampler2D _MainTex;
@@ -162,23 +197,30 @@ v2f vert( appdata_base v )
 }
 float4 frag( v2f i ) : COLOR
 {
+	float pi = 3.14159265359;
+	
 	float4 texcol = tex2D(_MainTex, i.uv);
 	float3 hue = rgb2hsv(texcol.rgb);
-	float3 n = normalize(i.lightDir + i.normal * 1.5);
-	float at = dot(i.lightDir, n);
+	float3 n = normalize(i.lightDir*(1.0-_DiffuseWeight) + i.normal*_DiffuseWeight);
+	float at = min(dot(i.lightDir, n),1.0);
 	if(hue.x <= 1.0/6.0) {
-		hue.x = hue.x - pow(acos(at),2.0) * 1.0 / 18.0; // acos(at) -> color cycle shift
+		hue.x = hue.x - pow(acos(at)/pi,_CoeffW) / _DivisionW; // acos(at) -> color cycle shift
 	} else if(hue.x <= 2.0/3.0) {
-		hue.x = hue.x + pow(acos(at),2.0) * 1.0 / 18.0; // acos(at) -> color cycle shift
+		hue.x = hue.x + pow(acos(at)/pi,_CoeffC) / _DivisionC; // acos(at) -> color cycle shift
 	}
 	
 	hue.z = hue.z * sqrt(max(sqrt(at),0.01));
 	texcol.rgb = hsv2rgb(hue) * _LightColor0.xyz;
-
+	
 	float3 shadowColor = _ShadowColor.rgb * texcol;
 	float attenuation = saturate( 2.0 * LIGHT_ATTENUATION( i ) - 1.0 );
-	texcol.rgb = lerp( shadowColor, texcol.rgb, attenuation );
-	return texcol;
+	float sint = pow(max(0.0, dot(reflect(-i.lightDir, n), i.eyeDir)), _Sharpness);
+	float3 spec = _LightColor0.rgb * attenuation * _SpecularColor * sint;
+	float3 lum = texcol.rgb + spec;
+	float4 result;
+	result.rgb = lerp( shadowColor, lum, attenuation );
+	result.a = texcol.a;
+	return result;
 }
 ENDCG
 }
