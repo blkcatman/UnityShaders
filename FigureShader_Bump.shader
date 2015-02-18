@@ -4,15 +4,14 @@
 //Released under the MIT license
 //http://opensource.org/licenses/mit-license.php
 //
-
 Shader "Custom/FigureShader_Bump" {
 	Properties {
 		_Color ("Main Color", Color) = (1, 1, 1, 1)
 		_SpecularColor ("Specular Color", Color) = (0.2, 0.2, 0.2, 1)
-		_ShadowColor ("Shadow Color", Color) = (0.8, 0.8, 0.8, 1)
+		_ShadowColor ("Shadow Color", Color) = (0.5, 0.5, 0.5, 1)
 		_Sharpness ("Specular Sharpness", Float) = 4.5
-		_DivisionW ("Warm color Division", Float) = 4.0
-		_DivisionC ("Cold color Division", Float) = 4.0
+		_DivisionW ("Warm color Division", Float) = 6.0
+		_DivisionC ("Cold color Division", Float) = 6.0
 		_CoeffW ("Warm color Coefficient", Float) = 1.0
 		_CoeffC ("Cold color Coefficient", Float) = 1.0
 		_MainTex ("Base (RGB)", 2D) = "white" {}
@@ -109,7 +108,9 @@ float4 frag( v2f i ) : COLOR
 	float pi = 3.14159265359;
 
 	float4 texcol = tex2D(_MainTex, i.uv);
+	float4 tex = texcol;
 	float3 hue = rgb2hsv(texcol.rgb);
+	float3 hue2 = hue;
 	
 	float4 en = tex2D(_BumpMap, _BumpMap_ST.xy * i.uv + _BumpMap_ST.zw);
 	float3 lc = float3(2.0*en.a - 1.0, 2.0*en.g - 1.0, 0.0);
@@ -121,25 +122,28 @@ float4 frag( v2f i ) : COLOR
 		i.normal
 	);
 	float3 rn = normalize(i.normal*(1.0-_BumpWeight) + mul(lc, local2world)*_BumpWeight);
-	
-	float3 n = normalize(i.lightDir*(1.0-_DiffuseWeight) + rn*_DiffuseWeight);
+	float3 n = i.lightDir*(1.0-_DiffuseWeight) + rn*_DiffuseWeight;
 	float at = min(dot(i.lightDir, n),1.0);
 	if(hue.x <= 1.0/6.0) {
 		hue.x = hue.x - pow(acos(at)/pi,_CoeffW) / _DivisionW; // acos(at) -> color cycle shift
+		hue2.x = hue2.x - pow(0.5,_CoeffW) / _DivisionW;
 	} else if(hue.x <= 2.0/3.0) {
 		hue.x = hue.x + pow(acos(at)/pi,_CoeffC) / _DivisionC; // acos(at) -> color cycle shift
+		hue2.x = hue2.x + pow(0.5,_CoeffC) / _DivisionC;
 	}
 	
 	hue.z = hue.z * sqrt(max(sqrt(at),0.01));
-	texcol.rgb = hsv2rgb(hue) * _LightColor0.xyz;
+	texcol.rgb = hsv2rgb(hue) * _LightColor0.rgb;
 	
-	float3 shadowColor = _ShadowColor.rgb * texcol;
+	float3 shadowColor = _ShadowColor.rgb * _LightColor0.rgb * hsv2rgb(hue2);
 	float attenuation = saturate( 2.0 * LIGHT_ATTENUATION( i ) - 1.0 );
-	float sint = pow(max(0.0, dot(reflect(-i.lightDir, n), i.eyeDir)), _Sharpness);
+	float sint = pow(max(0.0, dot(reflect(-i.lightDir, normalize(n)), i.eyeDir)), _Sharpness);
 	float3 spec = _LightColor0.rgb * attenuation * _SpecularColor * sint;
 	float3 lum = texcol.rgb + spec;
 	float4 result;
 	result.rgb = lerp( shadowColor, lum, attenuation );
+	result.rgb = UNITY_LIGHTMODEL_AMBIENT.rgb * tex.rgb + result.rgb;
+	result.rgb = max(shadowColor, result.rgb);
 	result.a = texcol.a;
 	return result;
 }
@@ -231,10 +235,12 @@ v2f vert( appdata_tan v )
 }
 float4 frag( v2f i ) : COLOR
 {
-	float pi = 3.14159265359;
+float pi = 3.14159265359;
 
 	float4 texcol = tex2D(_MainTex, i.uv);
+	float4 tex = texcol;
 	float3 hue = rgb2hsv(texcol.rgb);
+	float3 hue2 = hue;
 	
 	float4 en = tex2D(_BumpMap, _BumpMap_ST.xy * i.uv + _BumpMap_ST.zw);
 	float3 lc = float3(2.0*en.a - 1.0, 2.0*en.g - 1.0, 0.0);
@@ -246,25 +252,28 @@ float4 frag( v2f i ) : COLOR
 		i.normal
 	);
 	float3 rn = normalize(i.normal*(1.0-_BumpWeight) + mul(lc, local2world)*_BumpWeight);
-	
-	float3 n = normalize(i.lightDir*(1.0-_DiffuseWeight) + rn*_DiffuseWeight);
+	float3 n = i.lightDir*(1.0-_DiffuseWeight) + rn*_DiffuseWeight;
 	float at = min(dot(i.lightDir, n),1.0);
 	if(hue.x <= 1.0/6.0) {
 		hue.x = hue.x - pow(acos(at)/pi,_CoeffW) / _DivisionW; // acos(at) -> color cycle shift
+		hue2.x = hue2.x - pow(0.5,_CoeffW) / _DivisionW;
 	} else if(hue.x <= 2.0/3.0) {
 		hue.x = hue.x + pow(acos(at)/pi,_CoeffC) / _DivisionC; // acos(at) -> color cycle shift
+		hue2.x = hue2.x + pow(0.5,_CoeffC) / _DivisionC;
 	}
 	
 	hue.z = hue.z * sqrt(max(sqrt(at),0.01));
-	texcol.rgb = hsv2rgb(hue) * _LightColor0.xyz;
+	texcol.rgb = hsv2rgb(hue) * _LightColor0.rgb;
 	
-	float3 shadowColor = _ShadowColor.rgb * texcol;
+	float3 shadowColor = _ShadowColor.rgb * _LightColor0.rgb * hsv2rgb(hue2);
 	float attenuation = saturate( 2.0 * LIGHT_ATTENUATION( i ) - 1.0 );
-	float sint = pow(max(0.0, dot(reflect(-i.lightDir, n), i.eyeDir)), _Sharpness);
+	float sint = pow(max(0.0, dot(reflect(-i.lightDir, normalize(n)), i.eyeDir)), _Sharpness);
 	float3 spec = _LightColor0.rgb * attenuation * _SpecularColor * sint;
 	float3 lum = texcol.rgb + spec;
 	float4 result;
 	result.rgb = lerp( shadowColor, lum, attenuation );
+	result.rgb = UNITY_LIGHTMODEL_AMBIENT.rgb * tex.rgb + result.rgb;
+	result.rgb = max(shadowColor, result.rgb);
 	result.a = texcol.a;
 	return result;
 }
