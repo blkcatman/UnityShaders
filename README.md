@@ -35,6 +35,7 @@ Unityはフリー版ライセンスでも大丈夫です。シェーダーは4�
 
 
 ####ImageEffect(SelectiveNCorrection.cs)の使い方
+* Unityの標準イメージエフェクトをインポート(ImageEffectBase.csをインポート)
 * SelectiveNCorrection.csをカメラのあるGameObjectにドラッグ＆ドロップ
 * N CorrectionのテクスチャにImageEffects/Texturesフォルダ内にあるhue_val1かhue_val2をセット(hue_defaultは色味変化が付けられていないテクスチャ)
 * パラメータを変えて使う
