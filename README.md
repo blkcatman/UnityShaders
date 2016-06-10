@@ -1,6 +1,9 @@
 # UnityShaders
 Unity用シェーダーを作っていってます
 
+#アップデート
+イメージエフェクト版の簡易NINGYOU Shaderのスクリプトを追加しました。(2016/06/10)
+
 ##NINGYOUシェーダーについて
 
 NINGYOUシェーダーは影の色味をいじることにより、リアル系シェーダとトゥーン系シェーダの中間のような表現ができるため、名前のとおりフィギュアや人形の質感表現に向いているシェーダーです。
@@ -14,7 +17,6 @@ Unityはフリー版ライセンスでも大丈夫です。シェーダーは4�
 * FigureShader_DS.shader - FigureShader.shader の両面表示版
 * FigureShader_Bump.shader - バンプマップ、カラーテクスチャとディフューズとスペキュラの設定がある。
 * FigureShader_Bump_DS.shader - FigureShader_Bump.shader の両面表示版
-
 
 パラメータの意味については以下を参照してください。
 
@@ -30,6 +32,14 @@ Unityはフリー版ライセンスでも大丈夫です。シェーダーは4�
 * Normal Map - 法線マップ
 * Diffuse Strength - 光源に対する反応を変化させる。0.0-1.0の間で設定する
 * Bump Strength - バンプマップの強さを変化させる。0.0-2.0の間で設定する
+
+
+####ImageEffect(SelectiveNCorrection.cs)の使い方
+* SelectiveNCorrection.csをカメラのあるGameObjectにドラッグ＆ドロップ
+* N CorrectionのテクスチャにImageEffects/Texturesフォルダ内にあるhue_val1かhue_val2をセット(hue_defaultは色味変化が付けられていないテクスチャ)
+* パラメータを変えて使う
+
+自分で色味の変化を定義したい場合は、各色が一番暗くなったときに色相がどう変化するかを想定して、hue_default.bmpをPhotoshopやGimpなどのソフトで色相をいじってください。
 
 ###ライセンスについて
 
