@@ -10,9 +10,13 @@ Shader "Hidden/SelectiveNCorrection"
 	{
 		_MainTex ("Base(RGB)", 2D) = "white" {}
 		_NCTex("NCTexture", 2D) = "white" {}
-		_Weight("Effect Weight", Range(0, 10.0)) = 1.0
-		_SWeight("Saturation Weight", Range(0, 2.0)) = 1.0
-		_Brightness("Brightness", Range(0, 2.0)) = 1.0
+		_Weight("Effect Weight", Range(0, 2)) = 1.0
+		_SWeight("Saturation", Range(0, 2)) = 1.0
+		_Brightness("Brightness", Range(0, 2)) = 1.0
+
+		_ToneWeight("Tone Weight", Range(0, 2)) = 1.0
+		_ToneCoeff("Tone Coefficient", Range(0, 1)) = 1.0
+
 	}
 	SubShader
 	{
@@ -33,6 +37,8 @@ Shader "Hidden/SelectiveNCorrection"
 			float _SWeight;
 			float _Brightness;
 
+			float _ToneWeight;
+
 			float3 rgb2hsv(float3 c)
 			{
 				float4 K = float4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -51,24 +57,26 @@ Shader "Hidden/SelectiveNCorrection"
 			#endif
 			{
 				float4 col = tex2D(_MainTex, i.uv);
-				#ifdef NC_HDR
-				float l = length(col.xyz);
-				col.rgb = col.rgb / l;
-				#endif
 
+				float l = max(max(col.r, col.g), col.b);
+				col.rgb = col.rgb / l;
+
+				float3 hi  = col.rgb;
 				float3 hue = rgb2hsv(col.rgb);
 				float3 low = tex2D(_NCTex, float2(hue.r, 0.5));
 
-				float3 lp1 = lerp(low, col.rgb, saturate(hue.b / max(_Weight, 0.01)));
+				float v = hue.b*l*max(_ToneWeight, 0.2);
+
+				float3 lp1 = lerp(low, hi, saturate(v / (_Weight + 1.0)));
 				float3 lp2 = lerp(float3(1.0, 1.0, 1.0), lp1, saturate(hue.g * _SWeight));
-				float3 lp3 = lerp(float3(0.0, 0.0, 0.0), lp2, hue.b);
-				float3 res = lerp(lp3, col.rgb, saturate(1.0 / max(_Weight, 0.01)));
+				float3 res = lerp(lp2, hi, saturate(1.0 / (_Weight + 1.0)));
 
 				#ifdef NC_HDR
 				return float4(res * max(_Brightness, 0.0) * l, col.a);
 				#else
-				return fixed4(res * max(_Brightness, 0.0), col.a);
+				return fixed4(res * max(_Brightness, 0.0) * l, col.a);
 				#endif
+
 			}
 			ENDCG
 		}
